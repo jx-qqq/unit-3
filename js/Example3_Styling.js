@@ -50,8 +50,7 @@ window.onload = function(){
   //create the scale
   var x = d3.scaleLinear()
       .range([90, 810]) //output min and max
-      .domain([0, 3.25]); //input min and max
-      //adjust the domain to place the label inside
+      .domain([0, 3]); //input min and max
 
   //find the minimum value of the array
   var minPop = d3.min(cityPop, function(d){
@@ -130,8 +129,7 @@ window.onload = function(){
       .attr("text-anchor", "left")
       .attr("y", function(d){
           //vertical position centered on each circle
-          //adjust the position of the label
-          return y(d.population)-2;
+          return y(d.population) + 2;
       });
 
   //create format generator
