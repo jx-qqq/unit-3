@@ -45,7 +45,8 @@ function setMap(){
         var gratBackground = map.append("path")
             .datum(graticule.outline()) //bind graticule background
             .attr("class", "gratBackground") //assign class for styling
-            .attr("d", path); //project graticule
+            .attr("d", path); //project geoGraticule
+        console.log(gratBackground);
 
         //create graticule lines
         var gratLines = map.selectAll(".gratLines") //select graticule elements that will be created
@@ -56,15 +57,15 @@ function setMap(){
             .attr("d", path); //project graticule lines
 
         //add background to map
-        var countries = map.append("path")
+        var country = map.append("path")
             .datum(usPolygon)
-            .attr("class", "countries")
+            .attr("class", "country")
             .attr("d", path);
-        console.log(countries);
+        console.log(country);
 
         //add US states to map
         var states = map.selectAll(".states")
-            .data(usPolygon)
+            .data(usPolygon.features) //this has to be .features to work
             .enter()
             .append("path")
             .attr("class", function(d){

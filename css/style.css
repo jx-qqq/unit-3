@@ -9,11 +9,17 @@
 }
 
 .gratBackground {
-    fill: #FFF;
+    fill: #D5E3FF;
 }
 
-.countries {
+.country {
     fill: #FFF;
     stroke: #CCC;
     stroke-width: 2px;
+}
+
+.states {
+    fill: #7098e6;
+    stroke: #CCC;
+    stroke-width: 1px;
 }
