@@ -4,8 +4,8 @@ window.onload = setMap();
 //set up choropleth map
 function setMap(){
     //map frame dimensions
-    var width = 960,
-        height = 460;
+    var width = 900,
+        height = 500;
 
     //create new svg container for the map
     var map = d3.select("body")
@@ -15,12 +15,18 @@ function setMap(){
         .attr("height", height);
 
     //create Albers equal area conic projection centered on US
-    var projection = d3.geoAlbers()
-        .center([5.5, 40])
-        .rotate([106.45, 4.5, 0])
-        .parallels([29.5, 45.5])
-        .scale(900)
-        .translate([width / 2.5, height / 1.7]);
+    var projection =  d3.geoAlbers()
+      .scale(1000)
+      .translate([480, 250]);
+
+    //Interesting here: geoAlbers by default centered at US, which takes parameters as:
+    // var projection =  d3.geoAlbers()
+    //     .parallels([29.5, 45.5])
+    //     .scale(1070)
+    //     .translate([480, 250])
+    //     .rotate([96, 0])
+    //     .center([-0.6, 38.7]);
+
 
     var path = d3.geoPath()
         .projection(projection);
