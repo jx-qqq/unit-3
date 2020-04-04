@@ -12,7 +12,7 @@ function setMap(){
     //MAP, PROJECTION, PATH, AND QUEUE BLOCKS FROM MODULE 8
     //create new svg container for the map
     //map frame dimensions
-    var width = 960,
+    var width =  window.innerWidth * 0.6,
         height = 500;
     var map = d3.select("body")
         .append("svg")
@@ -22,7 +22,7 @@ function setMap(){
     //create Albers equal area conic projection centered on US
     var projection =  d3.geoAlbers()
         .scale(1050)
-        .translate([480, 250]);
+        .translate([width/2, height/2]);
     var path = d3.geoPath()
         .projection(projection);
 
@@ -46,6 +46,8 @@ function setMap(){
         var colorScale = makeColorScale(csvData);
         //add enumeration units to the map
         setEnumerationUnits(us, map, path, colorScale);
+        //add coordinated visualization to the map
+        setChart(csvData, colorScale);
     };
 
 }; //end of setMap()
@@ -145,4 +147,87 @@ function makeColorScale(data){
     //assign array of last 4 cluster minimums as domain
     colorScale.domain(domainArray);
     return colorScale;
+};
+
+
+//function to create coordinated bar chart
+function setChart(csvData, colorScale){
+    //chart frame dimensions
+    var chartWidth =  window.innerWidth * 0.35,
+        chartHeight = 500;
+    //create a second svg element to hold the bar chart
+    var chart = d3.select("body")
+        .append("svg")
+        .attr("width", chartWidth)
+        .attr("height", chartHeight)
+        .attr("class", "chart");
+
+    var att = [];
+    for (var i=0; i<csvData.length; i++){
+        att.push(csvData[i][expressed]?csvData[i][expressed]:0);
+    };
+    //create a scale to size bars proportionally to frame
+    var yScale = d3.scaleLinear()
+        .range([0, chartHeight * 0.98])
+        .domain([0, Math.max(...att)]); //find the max value
+    //set bars for each state
+    var bars = chart.selectAll(".bars")
+        .data(csvData)
+        .enter()
+        .append("rect")
+        .sort(function(a, b){ //rank from smallest to largest
+            vA = a[expressed]?a[expressed]:0; //deal with no value
+            vB = b[expressed]?b[expressed]:0;
+            return vA - vB;
+        })
+        .attr("class", function(d){
+            return "bars " + d.States;
+        })
+        .attr("width", chartWidth / csvData.length - 1)
+        .attr("x", function(d, i){
+            return i * (chartWidth / csvData.length);
+        })
+        .attr("height", function(d){
+            return parseFloat(d[expressed])? parseFloat(d[expressed]):0; //deal with no value
+        })
+        .attr("y", function(d){
+            return parseFloat(d[expressed])? chartHeight - yScale(parseFloat(d[expressed])):0;
+        })
+        .style("fill", function(d){
+            return d[expressed]?colorScale(d[expressed]):"#CCC";
+        });
+
+    //annotate bars with attribute value text
+    var numbers = chart.selectAll(".numbers")
+        .data(csvData)
+        .enter()
+        .append("text")
+        .sort(function(a, b){
+            vA = a[expressed]?a[expressed]:0; //deal with no value
+            vB = b[expressed]?b[expressed]:0;
+            return vA - vB;
+        })
+        .attr("class", function(d){
+            return "numbers " + d.States;
+        })
+        .attr("text-anchor", "middle")
+        .attr("x", function(d, i){
+            var fraction = chartWidth / csvData.length;
+            return i * fraction - (fraction - 1) / 6;
+        })
+        .attr("y", function(d){
+            return parseFloat(d[expressed]) ? chartHeight - yScale(parseFloat(d[expressed])) : chartHeight;
+        })
+        .text(function(d){
+            //format the text
+            text = d[expressed] ? d[expressed] : 0;
+            text = text>1000000 ? (text/1000000).toFixed(2) + 'M' : (text>1000 ? (text/1000).toFixed(0)+'K' : text);
+            return text
+        });
+    //create a text element for the chart title
+    var chartTitle = chart.append("text")
+        .attr("x", 20)
+        .attr("y", 40)
+        .attr("class", "chartTitle")
+        .text("2018 Annual Yield of " + expressed + "in states of the US");
 };
