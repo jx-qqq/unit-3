@@ -12,14 +12,8 @@
     fill: #D5E3FF;
 }
 
-.country {
+.states {
     fill: #FFF;
     stroke: #CCC;
     stroke-width: 2px;
-}
-
-.states {
-    fill: none;
-    stroke: #CCC;
-    stroke-width: 1px;
 }
