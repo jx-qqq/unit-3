@@ -1,3 +1,12 @@
+// Pseudo-code for attribute change listener
+// ON USER SELECTION:
+// Step 1. Change the expressed attribute
+// Step 2. Recreate the color scale with new class breaks
+// Step 3. Recolor each enumeration unit on the map
+// Step 4. Re-sort each bar on the bar chart
+// Step 5. Resize each bar on the bar chart
+// Step 6. Recolor each bar on the bar chart
+
 //wrap everything in a self-executing anonymous function to move to local scope
 
 //pseudo-global variables

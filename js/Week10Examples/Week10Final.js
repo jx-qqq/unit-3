@@ -3,17 +3,7 @@
 //pseudo-global variables
 //list of attributes
 var attrArray = ["Corn(1000Bushels)", "Wheat(1000Bushels)", "Oat(1000Bushels)", "Soybean(1000Bushels)", "Barley(1000Bushels)", "Cotton(1000Bales)"];
-var expressed = attrArray[0]; //initiate an attribute
-//chart frame dimensions
-var chartWidth =  window.innerWidth * 0.35,
-    chartHeight = 500,
-    leftPadding = 45,
-    rightPadding = 5,
-    topBottomPadding = 5,
-    chartInnerWidth = chartWidth - leftPadding - rightPadding,
-    chartInnerHeight = chartHeight - topBottomPadding * 2,
-    translate = "translate(" + leftPadding + "," + topBottomPadding + ")";
-
+var expressed = attrArray[0]; //initial attribute
 //begin script when window loads
 window.onload = setMap();
 
@@ -51,14 +41,15 @@ function setMap(){
         var us = topojson.feature(usPolygon, usPolygon.objects.US_continent_4326).features;
         //join csv data to GeoJSON enumeration units
         us = joinData(us, csvData);
+
         //create the color scale
-        var colorScale = makeColorScale(expressed, csvData);
+        var colorScale = makeColorScale(csvData);
         //add enumeration units to the map
         setEnumerationUnits(us, map, path, colorScale);
         //add coordinated visualization to the map
         setChart(csvData, colorScale);
-        createDropdown();
     };
+
 }; //end of setMap()
 
 
@@ -106,9 +97,28 @@ function joinData(us, csvData){
 };
 
 
+function setEnumerationUnits(us, map, path, colorScale){
+    //add France regions to map
+    var States = map.selectAll(".states")
+        .data(us)
+        .enter()
+        .append("path")
+        .attr("class", function(d){
+            return "states " + d.properties.NAME;
+        })
+        .attr("d", path)
+        .style("fill", function(d){
+            if (d.properties[expressed]){ //deal with no value data
+              return colorScale(d.properties[expressed]);
+            } else {
+              return "#CCC";
+            }
+        });
+};
+
 //function to create color scale generator
 //natural break method
-function makeColorScale(expressed, data){
+function makeColorScale(data){
     var colorClasses = [
         '#b2e2e2',
         '#66c2a4',
@@ -140,36 +150,17 @@ function makeColorScale(expressed, data){
 };
 
 
-function setEnumerationUnits(us, map, path, colorScale){
-    //add France regions to map
-    var States = map.selectAll(".states")
-        .data(us)
-        .enter()
-        .append("path")
-        .attr("class", function(d){
-            return "states " + d.properties.NAME;
-        })
-        .attr("d", path)
-        .style("fill", function(d){
-            if (d.properties[expressed]){ //deal with no value data
-              return colorScale(d.properties[expressed]);
-            } else {
-              return "#CCC";
-            }
-        });
-};
-
-
 //function to create coordinated bar chart
 function setChart(csvData, colorScale){
-    var att = [];
-    for (var i=0; i<csvData.length; i++){
-        att.push(csvData[i][expressed]?csvData[i][expressed]:0);
-    };
-    //create a scale to size bars proportionally to frame
-    var yScale = d3.scaleLinear()
-        .range([chartInnerHeight, 0])
-        .domain([0, Math.max(...att)]); //find the max value
+    //chart frame dimensions
+    var chartWidth =  window.innerWidth * 0.35,
+        chartHeight = 500,
+        leftPadding = 45,
+        rightPadding = 5,
+        topBottomPadding = 5,
+        chartInnerWidth = chartWidth - leftPadding - rightPadding,
+        chartInnerHeight = chartHeight - topBottomPadding * 2,
+        translate = "translate(" + leftPadding + "," + topBottomPadding + ")";
     //create a second svg element to hold the bar chart
     var chart = d3.select("body")
         .append("svg")
@@ -182,6 +173,15 @@ function setChart(csvData, colorScale){
         .attr("width", chartInnerWidth)
         .attr("height", chartInnerHeight)
         .attr("transform", translate);
+
+    var att = [];
+    for (var i=0; i<csvData.length; i++){
+        att.push(csvData[i][expressed]?csvData[i][expressed]:0);
+    };
+    //create a scale to size bars proportionally to frame
+    var yScale = d3.scaleLinear()
+        .range([chartInnerHeight, 0])
+        .domain([0, Math.max(...att)]); //find the max value
     //set bars for each state
     var bars = chart.selectAll(".bars")
         .data(csvData)
@@ -195,13 +195,28 @@ function setChart(csvData, colorScale){
         .attr("class", function(d){
             return "bars " + d.States;
         })
-        .attr("width", chartInnerWidth / csvData.length - 1);
-    //place an empty axis
-    var axis = d3.select('.chart')
-       .append("g")
+        .attr("width", chartInnerWidth / csvData.length - 1)
+        .attr("x", function(d, i){
+            return i * (chartInnerWidth / csvData.length) + leftPadding;
+        })
+        .attr("height", function(d){
+            return parseFloat(d[expressed])? chartInnerHeight - yScale(parseFloat(d[expressed])): 0; //deal with no value
+        })
+        .attr("y", function(d){
+            return parseFloat(d[expressed])? yScale(parseFloat(d[expressed])) + topBottomPadding : chartInnerHeight + topBottomPadding;
+        })
+        .style("fill", function(d){
+            return d[expressed]?colorScale(d[expressed]):"#CCC";
+        });
+
+    //create vertical axis generator
+    var yAxis = d3.axisLeft()
+       .scale(yScale);
+    //place axis
+    var axis = chart.append("g")
        .attr("class", "axis")
-       .attr("transform", translate);
-    updateChart(bars, csvData.length, colorScale);
+       .attr("transform", translate)
+       .call(yAxis);
     //create frame for chart border
     var chartFrame = chart.append("rect")
        .attr("class", "chartFrame")
@@ -214,92 +229,4 @@ function setChart(csvData, colorScale){
         .attr("y", 40)
         .attr("class", "chartTitle")
         .text("2018 Annual Yield of " + expressed + "in states of the US");
-};
-
-
-//function to create a dropdown menu for attribute selection
-function createDropdown(){
-    //add select element
-    var dropdown = d3.select("body")
-        .append("select")
-        .attr("class", "dropdown")
-        .on("change", function(){
-            changeAttribute(this.value, csvData)
-        });
-    //add initial option
-    var titleOption = dropdown.append("option")
-        .attr("class", "titleOption")
-        .attr("disabled", "true")
-        .text("Select Attribute");
-    //add attribute name options
-    var attrOptions = dropdown.selectAll("attrOptions")
-        .data(attrArray)
-        .enter()
-        .append("option")
-        .attr("value", function(d){ return d })
-        .text(function(d){ return d });
-};
-
-
-//dropdown change listener handler
-function changeAttribute(attribute, csvData){
-    //change the expressed attribute
-    expressed = attribute;
-    //recreate the color scale
-    var colorScale = makeColorScale(expressed, csvData);
-    //recolor enumeration units
-    var states = d3.selectAll(".states")
-        .style("fill", function(d){
-            var value = d.properties[expressed];
-            if(value) {
-            	return colorScale(value);
-            } else {
-            	return "#ccc";
-            }
-        });
-    //re-sort, resize, and recolor bars
-    var bars = d3.selectAll(".bar")
-        //re-sort bars
-        .sort(function(a, b){
-            vA = a[expressed]?a[expressed]:0; //deal with no value
-            vB = b[expressed]?b[expressed]:0;
-            return vB - vA;
-        });
-    updateChart(bars, csvData.length, colorScale);
-    //add text to chart title
-    var chartTitle = d3.select(".chartTitle")
-        .text("2018 Annual Yield of " + expressed + "in states of the US");
-};
-
-
-//function to position, size, and color bars in chart
-function updateChart(bars, n, colorScale){
-    var att = [];
-    for (var i=0; i<n; i++){
-        att.push(csvData[i][expressed]?csvData[i][expressed]:0);
-    };
-    //update yScale
-    var yScale = d3.scaleLinear()
-        .range([chartInnerHeight, 0])
-        .domain([0, Math.max(...att)]); //find the max value
-    bars.attr("x", function(d, i){
-            return i * (chartInnerWidth / n) + leftPadding;
-        })
-        //resize bars
-        .attr("height", function(d, i){
-            return parseFloat(d[expressed])? chartInnerHeight - yScale(parseFloat(d[expressed])): 0; //deal with no value
-        })
-        .attr("y", function(d, i){
-            return parseFloat(d[expressed])? yScale(parseFloat(d[expressed])) + topBottomPadding : chartInnerHeight + topBottomPadding;
-        })
-        //recolor bars
-        .style("fill", function(d){
-            return d[expressed]?colorScale(d[expressed]):"#CCC";
-        });
-    //update vertical axis
-    var yAxis = d3.axisLeft()
-       .scale(yScale);
-    //place axis
-    var axis = d3.select('.axis')
-        .call(yAxis);
 };
