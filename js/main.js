@@ -213,7 +213,7 @@ function setChart(csvData, colorScale){
         .attr("x", 80)
         .attr("y", 40)
         .attr("class", "chartTitle")
-        .text("2018 Annual Yield of " + expressed + "in states of the US");
+        .text("2018 Annual Yield of " + expressed + " in states of the US");
 };
 
 
@@ -249,6 +249,8 @@ function changeAttribute(attribute, csvData){
     var colorScale = makeColorScale(expressed, csvData);
     //recolor enumeration units
     var states = d3.selectAll(".states")
+        .transition()
+        .duration(1000)
         .style("fill", function(d){
             var value = d.properties[expressed];
             if(value) {
@@ -258,17 +260,22 @@ function changeAttribute(attribute, csvData){
             }
         });
     //re-sort, resize, and recolor bars
-    var bars = d3.selectAll(".bar")
+    var bars = d3.selectAll(".bars")
         //re-sort bars
         .sort(function(a, b){
             vA = a[expressed]?a[expressed]:0; //deal with no value
             vB = b[expressed]?b[expressed]:0;
             return vB - vA;
-        });
+        })
+        .transition() //add animation
+        .delay(function(d, i){
+            return i * 20
+        })
+        .duration(500);;
     updateChart(bars, csvData.length, colorScale);
     //add text to chart title
     var chartTitle = d3.select(".chartTitle")
-        .text("2018 Annual Yield of " + expressed + "in states of the US");
+        .text("2018 Annual Yield of " + expressed + " in states of the US");
 };
 
 
