@@ -30,8 +30,8 @@ function setMap(){
         .attr("width", width)
         .attr("height", height);
     //create Albers equal area conic projection centered on US
-    var projection =  d3.geoAlbers()
-        .scale(1050)
+    var projection =  d3.geoAlbersUsa()
+        .scale(1000)
         .translate([width/2, height/2]);
     var path = d3.geoPath()
         .projection(projection);
@@ -39,7 +39,7 @@ function setMap(){
     //use Promise.all to parallelize asynchronous data loading
     var promises = [];
     promises.push(d3.csv("data/USCropDataCSV.csv")); //load attributes from csv
-    promises.push(d3.json("data/US_continent_4326.topojson")); //load spatial data
+    promises.push(d3.json("data/tl_2017_us_state.topojson")); //load spatial data
     Promise.all(promises).then(callback);
 
     function callback(data){
@@ -48,7 +48,7 @@ function setMap(){
         //place graticule on the map
         setGraticule(map, path);
         //translate TopoJSON file
-        var us = topojson.feature(usPolygon, usPolygon.objects.US_continent_4326).features;
+        var us = topojson.feature(usPolygon, usPolygon.objects.tl_2017_us_state).features;
         //join csv data to GeoJSON enumeration units
         us = joinData(us, csvData);
         //create the color scale
@@ -86,18 +86,17 @@ function joinData(us, csvData){
     //DATA JOIN LOOPS
     //loop through csv to assign each set of csv attribute values to geojson region
     for (var i=0; i<csvData.length; i++){
-        var csvRegion = csvData[i]; //the current region
-        var csvKey = csvRegion.States; //the CSV primary key
+        var csvState = csvData[i]; //the current region
+        var csvKey = csvState.NAME; //the CSV primary key
         //loop through geojson regions to find correct region
         for (var a=0; a<us.length; a++){
             var geojsonProps = us[a].properties; //the current region geojson properties
             var geojsonKey = geojsonProps.NAME; //the geojson primary key
             //where primary keys match, transfer csv data to geojson properties object
             if (geojsonKey == csvKey){
-                geojsonProps['States'] = csvKey;
                 //assign all attributes and values
                 attrArray.forEach(function(attr){
-                    var val = parseFloat(csvRegion[attr]); //get csv attribute value
+                    var val = parseFloat(csvState[attr]); //get csv attribute value
                     geojsonProps[attr] = val; //assign attribute and value to geojson properties
                 });
             };
@@ -148,7 +147,7 @@ function setEnumerationUnits(us, map, path, colorScale){
         .enter()
         .append("path")
         .attr("class", function(d){
-            return "states " + d.properties.NAME;
+            return "states " + d.properties.NAME.replace(/\s/g, ''); //avoid space in the class name, such as "New Jersey" to "NewJersey"
         })
         .attr("d", path)
         .style("fill", function(d){
@@ -196,7 +195,7 @@ function setChart(csvData, colorScale){
             return vB - vA;
         })
         .attr("class", function(d){
-            return "bars " + d.States;
+            return "bars " + d.NAME.replace(/\s/g, ''); //remove space in class name, the same to above
         })
         .attr("width", chartInnerWidth / csvData.length - 1)
         .on("mouseover", highlight)
@@ -229,14 +228,14 @@ function setChart(csvData, colorScale){
 //function to highlight enumeration units and bars
 function highlight(props){
     //change stroke
-    var selected = d3.selectAll("." + props.States)
+    var selected = d3.selectAll("." + props.NAME.replace(/\s/g, ''))
         .style("stroke", "orange")
         .style("stroke-width", "3");
     setLabel(props);
 };
 //function to reset the element style on mouseout
 function dehighlight(props){
-    var selected = d3.selectAll("." + props.States)
+    var selected = d3.selectAll("." + props.NAME.replace(/\s/g, ''))
         .style("stroke", function(){
             return getStyle(this, "stroke")
         })
@@ -266,12 +265,12 @@ function setLabel(props){
     var infolabel = d3.select("body")
         .append("div")
         .attr("class", "infolabel")
-        .attr("id", props.States + "_label")
+        .attr("id", props.NAME + "_label")
         .html(labelAttribute);
 
     var stateName = infolabel.append("div")
         .attr("class", "labelname")
-        .html(props.States);
+        .html(props.NAME);
 };
 //function to move info label with mouse
 function moveLabel(){
